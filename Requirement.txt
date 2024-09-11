@@ -14,3 +14,9 @@ I want to do a Calendar plugin for date picker. The date picker calendar should 
 -the calendar wont hide until first date and second date is selected.
 -highlight the selected date in the calendar
 -able to change date format method, default format will be "wed, 12/May/2024"
+
+-it will highlight date in between when select second date
+-provide a init method for the startdate and enddate input
+-auto create a container below the input field for desktop view and container with fit screen size for mobile view
+
+-it will highlight date in between when hover the second date

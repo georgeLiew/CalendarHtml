@@ -5,14 +5,41 @@ class Calendar {
         this.disabledDates = [];
         this.prices = {};
         this.dateFormat = dateFormat;
+        this.isMobile = window.innerWidth <= 768; // Add mobile detection
+        this.initContainer();
 
         this.initElements();
         this.renderCalendar();
         this.addEventListeners();
+        this.hoverDate = null;
+        this.touchStartX = 0;
+        this.touchEndX = 0;
+    }
+
+    initContainer() {
+        // Create container for calendar
+        this.calendarContainer = document.createElement('div');
+        this.calendarContainer.className = 'calendar-container';
+        this.calendarContainer.style.display = 'none';
+
+        if (this.isMobile) {
+            this.calendarContainer.style.position = 'fixed';
+            this.calendarContainer.style.top = '0';
+            this.calendarContainer.style.left = '0';
+            this.calendarContainer.style.width = '100vw';
+            this.calendarContainer.style.height = '100vh';
+            this.calendarContainer.style.zIndex = '1000';
+        } else {
+            this.calendarContainer.style.position = 'absolute';
+        }
+
+        document.body.appendChild(this.calendarContainer);
+
+        // Move existing calendar HTML into this container
+        // ... (code to create calendar HTML structure)
     }
 
     initElements() {
-        this.calendarContainer = document.querySelector('.calendar-container');
         this.calendarBody = document.getElementById('calendarBody');
         this.currentMonthElement = document.getElementById('currentMonth');
         this.prevMonthBtn = document.getElementById('prevMonth');
@@ -42,6 +69,13 @@ class Calendar {
         }
 
         this.calendarBody.innerHTML = dateString;
+
+        // Add mouseover and mouseout events to date cells
+        const dateCells = this.calendarBody.querySelectorAll('.date:not(.disabled)');
+        dateCells.forEach(cell => {
+            cell.addEventListener('mouseenter', (e) => this.handleDateHover(e));
+            cell.addEventListener('mouseleave', (e) => this.handleDateHoverEnd(e));
+        });
     }
 
     getDateClass(date) {
@@ -52,7 +86,34 @@ class Calendar {
         if (this.selectedDates.some(d => d.toDateString() === date.toDateString())) {
             classes += ' selected';
         }
+        if (this.selectedDates.length === 2 && 
+            date > this.selectedDates[0] && 
+            date < this.selectedDates[1]) {
+            classes += ' in-range';
+        }
+        if (this.selectedDates.length === 1 && this.hoverDate) {
+            const [minDate, maxDate] = [this.selectedDates[0], this.hoverDate].sort((a, b) => a - b);
+            if (date > minDate && date <= maxDate) {
+                classes += ' hover-range';
+            }
+        }
         return classes;
+    }
+
+    handleDateHover(e) {
+        if (this.selectedDates.length === 1) {
+            this.hoverDate = new Date(e.target.dataset.date);
+            this.renderCalendar();
+            console.log('handleDateHover', this.hoverDate);
+        }
+    }
+
+    handleDateHoverEnd(e) {
+        if (this.selectedDates.length === 1) {
+            this.hoverDate = null;
+            this.renderCalendar();
+            console.log('handleDateHoverEnd');
+        }
     }
 
     addEventListeners() {
@@ -61,13 +122,11 @@ class Calendar {
         this.calendarBody.addEventListener('click', (e) => this.handleDateClick(e));
 
         // Add touch events for swiping
-        let touchStartX = 0;
-        let touchEndX = 0;
         this.calendarBody.addEventListener('touchstart', (e) => {
-            touchStartX = e.changedTouches[0].screenX;
+            this.touchStartX = e.changedTouches[0].screenX;
         });
         this.calendarBody.addEventListener('touchend', (e) => {
-            touchEndX = e.changedTouches[0].screenX;
+            this.touchEndX = e.changedTouches[0].screenX;
             this.handleSwipe();
         });
 
@@ -87,10 +146,10 @@ class Calendar {
 
     handleSwipe() {
         const swipeThreshold = 50;
-        if (touchEndX < touchStartX - swipeThreshold) {
+        if (this.touchEndX < this.touchStartX - swipeThreshold) {
             this.changeMonth(1);
         }
-        if (touchEndX > touchStartX + swipeThreshold) {
+        if (this.touchEndX > this.touchStartX + swipeThreshold) {
             this.changeMonth(-1);
         }
     }
@@ -105,35 +164,37 @@ class Calendar {
 
         const clickedDate = new Date(e.target.dataset.date);
 
-        if (this.selectedDates.length === 0) {
+        if (this.inputs.length === 1) {
+            // Single date selection
             this.selectedDates = [clickedDate];
-        } else if (this.selectedDates.length === 1) {
-            if (clickedDate > this.selectedDates[0]) {
-                this.selectedDates.push(clickedDate);
-            } else {
-                this.selectedDates = [clickedDate];
-            }
-        } else if (this.selectedDates.length === 2) {
-            if (clickedDate > this.selectedDates[1]) {
-                this.selectedDates[1] = clickedDate;
-            } else if (clickedDate < this.selectedDates[0]) {
-                this.selectedDates[0] = clickedDate;
-            } else {
-                this.selectedDates = [clickedDate];
-            }
-        }
-
-        this.updateInputs();
-        this.renderCalendar();
-
-        if (this.selectedDates.length === 2) {
+            this.updateInputs();
+            this.renderCalendar();
             this.hideCalendar();
+        } else if (this.inputs.length === 2) {
+            // Two date selection
+            if (this.selectedDates.length === 0 || this.selectedDates.length === 2) {
+                this.selectedDates = [clickedDate];
+            } else if (this.selectedDates.length === 1) {
+                if (clickedDate > this.selectedDates[0]) {
+                    this.selectedDates.push(clickedDate);
+                } else {
+                    this.selectedDates = [clickedDate, this.selectedDates[0]];
+                }
+                this.hideCalendar();
+            }
+            this.hoverDate = null;
+            this.updateInputs();
+            this.renderCalendar();
         }
     }
 
     updateInputs() {
-        this.startDateInput.value = this.selectedDates[0] ? this.formatDate(this.selectedDates[0]) : '';
-        this.endDateInput.value = this.selectedDates[1] ? this.formatDate(this.selectedDates[1]) : '';
+        if (this.inputs.length === 1) {
+            this.inputs[0].value = this.selectedDates[0] ? this.formatDate(this.selectedDates[0]) : '';
+        } else if (this.inputs.length === 2) {
+            this.inputs[0].value = this.selectedDates[0] ? this.formatDate(this.selectedDates[0]) : '';
+            this.inputs[1].value = this.selectedDates[1] ? this.formatDate(this.selectedDates[1]) : '';
+        }
     }
 
     formatDate(date) {
@@ -168,7 +229,7 @@ class Calendar {
     }
 
     hideCalendar() {
-        if (this.selectedDates.length === 2) {
+        if (this.inputs.length === 1 || (this.inputs.length === 2 && this.selectedDates.length === 2)) {
             this.calendarContainer.style.display = 'none';
         }
     }
@@ -177,11 +238,34 @@ class Calendar {
         this.dateFormat = format;
         this.updateInputs();
     }
+
+    // New method to initialize start and end date inputs
+    initDateInputs(...inputSelectors) {
+        this.inputs = inputSelectors.map(selector => document.querySelector(selector));
+
+        if (this.inputs.some(input => !input)) {
+            console.error('One or more date inputs not found');
+            return;
+        }
+
+        this.inputs.forEach(input => {
+            input.addEventListener('click', () => this.showCalendar());
+        });
+
+        // Position the calendar container relative to the first input
+        const firstInput = this.inputs[0];
+        const rect = firstInput.getBoundingClientRect();
+        this.calendarContainer.style.top = `${rect.bottom}px`;
+        this.calendarContainer.style.left = `${rect.left}px`;
+    }
 }
-
-const calendar = new Calendar();
-
 // Example usage:
 // calendar.setDisabledDates(['2023-05-06', '2023-05-07']);
 // calendar.setPrices({'2023-05-13': '$100', '2023-05-14': '$120'});
 // calendar.setDateFormat("yyyy-MM-dd");
+
+// Usage:
+const calendar = new Calendar();
+calendar.initDateInputs('#startDate', '#endDate'); // For two date selection
+// OR
+// calendar.initDateInputs('#singleDate'); // For single date selection
