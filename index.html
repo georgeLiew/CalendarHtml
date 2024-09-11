@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendar Plugin</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="date-inputs">
+        <input type="text" id="startDate" placeholder="Start Date" readonly>
+        <input type="text" id="endDate" placeholder="End Date" readonly>
+    </div>
+    <div class="calendar-container" style="display: none;">
+        <div class="calendar-header">
+            <button id="prevMonth">&lt;</button>
+            <h2 id="currentMonth"></h2>
+            <button id="nextMonth">&gt;</button>
+        </div>
+        <div class="calendar-body" id="calendarBody"></div>
+    </div>
+    <script src="calendar.js"></script>
+</body>
+</html>

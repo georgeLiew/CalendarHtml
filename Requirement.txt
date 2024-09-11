@@ -1,0 +1,16 @@
+I want to do a Calendar plugin for date picker. The date picker calendar should have following features:
+
+-The plugin must be in javascript and css only.
+-Able select single date or 2 date. If select single date it will update one input field. if it select 2 date it will update 2 input field. the second date must be greater than the first date.
+-Able swipe to next month or previous month
+-In mobile view, the calendar need to be full screen
+-Able to disable certain date
+-Able to display price on date
+-Calendar will hide first until user click on the first input or second input
+-After first and second date input is filled, when user click on the calendar again, and the date is after the second date, it will change the second date value instead of reset both value
+-in mobile view, the calendar need to fix exactly the screen size
+-After user key in both date, the calendar will hide
+
+-the calendar wont hide until first date and second date is selected.
+-highlight the selected date in the calendar
+-able to change date format method, default format will be "wed, 12/May/2024"
