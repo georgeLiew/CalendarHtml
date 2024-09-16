@@ -375,26 +375,39 @@ class Calendar {
         }
 
         const monthToAdd = 1; // Number of months to add each time
+        const monthsContainer = document.querySelector(`#${this.calendarId} .mobile-months-container`);
 
         if (position === 'top') {
             const firstMonth = this.mobileMonths[0];
             const newDate = new Date(firstMonth.getFullYear(), firstMonth.getMonth() - monthToAdd, 1);
             this.mobileMonths.unshift(newDate);
+
+            // Render only the new month
+            const newMonthContainer = this.createMonthContainer();
+            this.updateMonthContainer(newMonthContainer, newDate);
+            newMonthContainer.style.order = -1; // Place it at the top
+            monthsContainer.insertBefore(newMonthContainer, monthsContainer.firstChild);
+
+            // Adjust scroll position to keep the view stable
+            monthsContainer.scrollTop += newMonthContainer.offsetHeight;
         } else {
             const lastMonth = this.mobileMonths[this.mobileMonths.length - 1];
             const newDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + monthToAdd, 1);
             this.mobileMonths.push(newDate);
+
+            // Render only the new month
+            const newMonthContainer = this.createMonthContainer();
+            this.updateMonthContainer(newMonthContainer, newDate);
+            newMonthContainer.style.order = this.mobileMonths.length;
+            monthsContainer.appendChild(newMonthContainer);
         }
 
-        this.renderMobileMonths();
-
-        // Adjust scroll position to prevent jumping
-        setTimeout(() => {
-            const monthsContainer = document.querySelector(`#${this.calendarId} .mobile-months-container`);
-            if (position === 'top') {
-                monthsContainer.scrollTop += monthsContainer.children[0].offsetHeight;
-            }
-        }, 0);
+        // Add click event listeners to date cells of the new month
+        newMonthContainer.querySelectorAll('.calendar-date').forEach(dateCell => {
+            dateCell.addEventListener('click', (event) => {
+                this.selectDate(event.target);
+            });
+        });
 
         this.lastLoadTime = now; // Update the last load time
     }
