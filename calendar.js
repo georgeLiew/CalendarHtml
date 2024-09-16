@@ -10,6 +10,7 @@ class Calendar {
         this.calendarId = `calendar-container-${Math.random().toString(36).substr(2, 9)}`;
         this.mobileMonths = []; // Array to store month data for mobile view
         this.enableScrollLoading = false;
+        this.lastLoadTime = 0; // Track the last time a month was loaded
         this.init();
     }
 
@@ -358,14 +359,21 @@ class Calendar {
         const containerHeight = container.clientHeight;
         const scrollHeight = container.scrollHeight;
 
-        if (scrollPosition < containerHeight * 0.2) {
+        if (scrollPosition < containerHeight * 0.1) {
             this.loadMoreMonths('top');
-        } else if (scrollPosition + containerHeight > scrollHeight - containerHeight * 0.2) {
+        } else if (scrollPosition + containerHeight > scrollHeight - containerHeight * 0.1) {
             this.loadMoreMonths('bottom');
         }
     }
 
     loadMoreMonths(position) {
+        const now = Date.now();
+        const cooldownPeriod = 1000; // 1 second cooldown
+
+        if (now - this.lastLoadTime < cooldownPeriod) {
+            return; // Exit if we're still in the cooldown period
+        }
+
         const monthToAdd = 1; // Number of months to add each time
 
         if (position === 'top') {
@@ -387,6 +395,8 @@ class Calendar {
                 monthsContainer.scrollTop += monthsContainer.children[0].offsetHeight;
             }
         }, 0);
+
+        this.lastLoadTime = now; // Update the last load time
     }
 
     updateSelectedDateDisplay() {
