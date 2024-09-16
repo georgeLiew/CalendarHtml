@@ -15,7 +15,7 @@ class Calendar {
         this.createCalendar();
         this.addEventListeners();
         this.updateCalendar();
-        this.setView(this.view);
+        this.setView(this.view); // This will now be called after creation
     }
 
     createCalendar() {
@@ -103,7 +103,9 @@ class Calendar {
         const inputSelector = this.options.singleDateSelector || this.options.rangeDateSelectors.join(', ');
         document.querySelectorAll(inputSelector).forEach(input => {
             input.addEventListener('focus', () => {
-                document.getElementById(this.calendarId).style.display = 'block';
+                const container = document.getElementById(this.calendarId);
+                container.style.display = 'block';
+                this.setView(this.view); // Apply the correct view when opening
             });
         });
 
@@ -287,12 +289,15 @@ class Calendar {
     setView(view) {
         this.view = view;
         const container = document.getElementById(this.calendarId);
+        const desktopView = container.querySelector('.desktop-view');
+        const mobileView = container.querySelector('.mobile-view');
+
         if (view === 'desktop') {
-            container.classList.remove('mobile-view');
-            container.classList.add('desktop-view');
+            desktopView.style.display = 'flex';
+            mobileView.style.display = 'none';
         } else {
-            container.classList.remove('desktop-view');
-            container.classList.add('mobile-view');
+            desktopView.style.display = 'none';
+            mobileView.style.display = 'block';
         }
         this.updateCalendar();
     }
