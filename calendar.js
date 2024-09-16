@@ -56,7 +56,11 @@ class Calendar {
                 <button class="close-btn">Close</button>
                 <h2>Select Date</h2>
             </div>
+            <div class="selected-date-display"></div>
             <div class="mobile-months-container"></div>
+            <div class="confirm-btn-container">
+                <button class="confirm-btn">Confirm</button>
+            </div>
         `;
         calendarContainer.appendChild(mobileView);
 
@@ -101,10 +105,10 @@ class Calendar {
     addEventListeners() {
         const inputSelector = this.options.singleDateSelector || this.options.rangeDateSelectors.join(', ');
         document.querySelectorAll(inputSelector).forEach(input => {
-            input.addEventListener('focus', () => {
+            input.addEventListener('click', () => {
                 const container = document.getElementById(this.calendarId);
                 container.style.display = 'block';
-                this.setView(this.view); // Apply the correct view when opening
+                this.setView(this.view);
             });
         });
 
@@ -127,9 +131,14 @@ class Calendar {
         const mobileView = document.querySelector(`#${this.calendarId} .mobile-view`);
         const closeBtn = mobileView.querySelector('.close-btn');
         const monthsContainer = mobileView.querySelector('.mobile-months-container');
+        const confirmBtn = mobileView.querySelector('.confirm-btn');
 
         closeBtn.addEventListener('click', () => {
             document.getElementById(this.calendarId).style.display = 'none';
+        });
+
+        confirmBtn.addEventListener('click', () => {
+            this.confirmSelection();
         });
 
         monthsContainer.addEventListener('scroll', this.handleMobileScroll.bind(this));
@@ -140,27 +149,16 @@ class Calendar {
         
         if (this.options.singleDateSelector) {
             // Single date picker logic
-            const singleDateInput = document.querySelector(this.options.singleDateSelector);
-            singleDateInput.value = this.formatDate(selectedDate);
             this.selectedDates = selectedDate;
-            document.getElementById(this.calendarId).style.display = 'none';
         } else if (this.options.rangeDateSelectors) {
             // Date range picker logic
-            const [startDateInput, endDateInput] = this.options.rangeDateSelectors.map(selector => document.querySelector(selector));
-            
             if (this.selectedDates.length === 0 || this.selectedDates.length === 2) {
                 this.selectedDates = [selectedDate];
-                startDateInput.value = this.formatDate(selectedDate);
-                endDateInput.value = '';
             } else {
                 if (selectedDate > this.selectedDates[0]) {
                     this.selectedDates[1] = selectedDate;
-                    endDateInput.value = this.formatDate(selectedDate);
-                    document.getElementById(this.calendarId).style.display = 'none';
                 } else if (selectedDate < this.selectedDates[0]) {
                     this.selectedDates = [selectedDate];
-                    startDateInput.value = this.formatDate(selectedDate);
-                    endDateInput.value = '';
                 } else {
                     // If same as start date, do nothing
                     return;
@@ -169,6 +167,7 @@ class Calendar {
         }
 
         this.highlightSelectedDates();
+        this.updateSelectedDateDisplay();
     }
 
     highlightSelectedDates() {
@@ -298,7 +297,7 @@ class Calendar {
             container.style.height = '100%';
             container.style.zIndex = '1000';
             desktopView.style.display = 'none';
-            mobileView.style.display = 'block';
+            mobileView.style.display = 'flex';
             this.initMobileView();
         }
     }
@@ -324,6 +323,13 @@ class Calendar {
             this.updateMonthContainer(monthContainer, date);
             monthContainer.style.order = index;
             monthsContainer.appendChild(monthContainer);
+
+            // Add click event listeners to date cells
+            monthContainer.querySelectorAll('.calendar-date').forEach(dateCell => {
+                dateCell.addEventListener('click', (event) => {
+                    this.selectDate(event.target);
+                });
+            });
         });
 
         // Scroll to the middle (current month)
@@ -348,16 +354,56 @@ class Calendar {
     }
 
     loadMoreMonths(position) {
-        const newDate = new Date(this.mobileMonths[position === 'top' ? 0 : this.mobileMonths.length - 1]);
-        newDate.setMonth(newDate.getMonth() + (position === 'top' ? -1 : 1));
+        const monthToAdd = 1; // Number of months to add each time
 
         if (position === 'top') {
+            const firstMonth = this.mobileMonths[0];
+            const newDate = new Date(firstMonth.getFullYear(), firstMonth.getMonth() - monthToAdd, 1);
             this.mobileMonths.unshift(newDate);
         } else {
+            const lastMonth = this.mobileMonths[this.mobileMonths.length - 1];
+            const newDate = new Date(lastMonth.getFullYear(), lastMonth.getMonth() + monthToAdd, 1);
             this.mobileMonths.push(newDate);
         }
 
         this.renderMobileMonths();
+
+        // Adjust scroll position to prevent jumping
+        setTimeout(() => {
+            const monthsContainer = document.querySelector(`#${this.calendarId} .mobile-months-container`);
+            if (position === 'top') {
+                monthsContainer.scrollTop += monthsContainer.children[0].offsetHeight;
+            }
+        }, 0);
+    }
+
+    updateSelectedDateDisplay() {
+        const displayElement = document.querySelector(`#${this.calendarId} .selected-date-display`);
+        if (this.options.singleDateSelector) {
+            displayElement.textContent = this.selectedDates ? this.formatDate(this.selectedDates) : 'No date selected';
+        } else if (this.options.rangeDateSelectors) {
+            if (this.selectedDates.length === 0) {
+                displayElement.textContent = 'No dates selected';
+            } else if (this.selectedDates.length === 1) {
+                displayElement.textContent = `Start: ${this.formatDate(this.selectedDates[0])}`;
+            } else {
+                displayElement.textContent = `Start: ${this.formatDate(this.selectedDates[0])} - End: ${this.formatDate(this.selectedDates[1])}`;
+            }
+        }
+    }
+
+    confirmSelection() {
+        if (this.options.singleDateSelector) {
+            const singleDateInput = document.querySelector(this.options.singleDateSelector);
+            singleDateInput.value = this.selectedDates ? this.formatDate(this.selectedDates) : '';
+        } else if (this.options.rangeDateSelectors) {
+            const [startDateInput, endDateInput] = this.options.rangeDateSelectors.map(selector => document.querySelector(selector));
+            if (this.selectedDates.length > 0) {
+                startDateInput.value = this.formatDate(this.selectedDates[0]);
+                endDateInput.value = this.selectedDates[1] ? this.formatDate(this.selectedDates[1]) : '';
+            }
+        }
+        document.getElementById(this.calendarId).style.display = 'none';
     }
 }
 

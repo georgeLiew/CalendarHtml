@@ -32,24 +32,50 @@
 }
 
 .mobile-header {
+    position: sticky;
+    top: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px;
     background-color: #f0f0f0;
+    z-index: 1;
 }
 
-.close-btn {
+.close-btn, .confirm-btn {
     background: none;
     border: none;
     font-size: 16px;
     cursor: pointer;
+    padding: 10px;
+}
+
+.confirm-btn {
+    width: 100%;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.selected-date-display {
+    position: sticky;
+    top: 50px; /* Adjust this value based on the height of your mobile-header */
+    text-align: center;
+    padding: 10px;
+    font-weight: bold;
+    background-color: #e6f2ff;
+    z-index: 1;
 }
 
 .mobile-months-container {
     flex-grow: 1;
     overflow-y: auto;
     scroll-behavior: smooth;
+    padding-bottom: 60px; /* Add padding to account for the fixed confirm button */
 }
 
 .mobile-view .month-container {
