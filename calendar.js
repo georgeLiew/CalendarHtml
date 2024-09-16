@@ -8,6 +8,7 @@ class Calendar {
         this.view = options.view || 'desktop';
         this.dateFormat = options.dateFormat || "ddd, DD/MMM/YYYY";
         this.calendarId = `calendar-container-${Math.random().toString(36).substr(2, 9)}`;
+        this.mobileMonths = []; // Array to store month data for mobile view
         this.init();
     }
 
@@ -47,22 +48,20 @@ class Calendar {
 
         calendarContainer.appendChild(desktopView);
 
-        // Create mobile view (multiple months stacked)
+        // Create mobile view (full-screen popup)
         const mobileView = document.createElement('div');
         mobileView.className = 'mobile-view';
-        for (let i = 0; i < 3; i++) {
-            const monthContainer = this.createMonthContainer();
-            mobileView.appendChild(monthContainer);
-        }
+        mobileView.innerHTML = `
+            <div class="mobile-header">
+                <button class="close-btn">Close</button>
+                <h2>Select Date</h2>
+            </div>
+            <div class="mobile-months-container"></div>
+        `;
         calendarContainer.appendChild(mobileView);
 
-        // Append to placeholder or body
-        const placeholder = document.querySelector(this.options.placeholder);
-        if (placeholder) {
-            placeholder.appendChild(calendarContainer);
-        } else {
-            document.body.appendChild(calendarContainer);
-        }
+        // Append to body for full-screen mobile view
+        document.body.appendChild(calendarContainer);
     }
 
     createMonthContainer() {
@@ -124,22 +123,16 @@ class Calendar {
             });
         });
 
-        // Add swipe functionality for mobile view
-        if (this.view === 'mobile') {
-            const mobileView = document.querySelector(`#${this.calendarId} .mobile-view`);
-            let touchStartY;
-            mobileView.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-            });
-            mobileView.addEventListener('touchmove', (e) => {
-                const touchEndY = e.touches[0].clientY;
-                const diff = touchStartY - touchEndY;
-                if (Math.abs(diff) > 50) { // Threshold for swipe
-                    this.changeMonth(diff > 0 ? 1 : -1);
-                    touchStartY = touchEndY;
-                }
-            });
-        }
+        // Mobile view specific listeners
+        const mobileView = document.querySelector(`#${this.calendarId} .mobile-view`);
+        const closeBtn = mobileView.querySelector('.close-btn');
+        const monthsContainer = mobileView.querySelector('.mobile-months-container');
+
+        closeBtn.addEventListener('click', () => {
+            document.getElementById(this.calendarId).style.display = 'none';
+        });
+
+        monthsContainer.addEventListener('scroll', this.handleMobileScroll.bind(this));
     }
 
     selectDate(dateElement) {
@@ -293,13 +286,78 @@ class Calendar {
         const mobileView = container.querySelector('.mobile-view');
 
         if (view === 'desktop') {
+            container.style.position = 'absolute';
             desktopView.style.display = 'flex';
             mobileView.style.display = 'none';
+            this.updateCalendar();
         } else {
+            container.style.position = 'fixed';
+            container.style.top = '0';
+            container.style.left = '0';
+            container.style.width = '100%';
+            container.style.height = '100%';
+            container.style.zIndex = '1000';
             desktopView.style.display = 'none';
             mobileView.style.display = 'block';
+            this.initMobileView();
         }
-        this.updateCalendar();
+    }
+
+    initMobileView() {
+        this.mobileMonths = [];
+        const currentDate = new Date(this.currentMonth);
+        
+        // Add previous, current, and next month
+        this.mobileMonths.push(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+        this.mobileMonths.push(new Date(currentDate));
+        this.mobileMonths.push(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+
+        this.renderMobileMonths();
+    }
+
+    renderMobileMonths() {
+        const monthsContainer = document.querySelector(`#${this.calendarId} .mobile-months-container`);
+        monthsContainer.innerHTML = '';
+
+        this.mobileMonths.forEach((date, index) => {
+            const monthContainer = this.createMonthContainer();
+            this.updateMonthContainer(monthContainer, date);
+            monthContainer.style.order = index;
+            monthsContainer.appendChild(monthContainer);
+        });
+
+        // Scroll to the middle (current month)
+        setTimeout(() => {
+            const middleIndex = Math.floor(this.mobileMonths.length / 2);
+            const middleMonth = monthsContainer.children[middleIndex];
+            middleMonth.scrollIntoView({ behavior: 'auto', block: 'center' });
+        }, 0);
+    }
+
+    handleMobileScroll(event) {
+        const container = event.target;
+        const scrollPosition = container.scrollTop;
+        const containerHeight = container.clientHeight;
+        const scrollHeight = container.scrollHeight;
+
+        if (scrollPosition < containerHeight * 0.2) {
+            this.loadMoreMonths('top');
+        } else if (scrollPosition + containerHeight > scrollHeight - containerHeight * 0.2) {
+            this.loadMoreMonths('bottom');
+        }
+    }
+
+    loadMoreMonths(position) {
+        const newDate = new Date(this.mobileMonths[position === 'top' ? 0 : this.mobileMonths.length - 1]);
+        newDate.setMonth(newDate.getMonth() + (position === 'top' ? -1 : 1));
+
+        if (position === 'top') {
+            this.mobileMonths.unshift(newDate);
+        } else {
+            this.mobileMonths.push(newDate);
+        }
+
+        this.renderMobileMonths();
     }
 }
 
