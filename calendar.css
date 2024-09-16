@@ -1,0 +1,108 @@
+#calendar-container {
+    position: fixed;
+    background: white;
+    border: 1px solid #ccc;
+    padding: 10px;
+    display: none;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.desktop-view {
+    display: flex;
+    align-items: flex-start;
+}
+
+.vertical-line {
+    width: 1px;
+    background-color: #ccc;
+    height: 100%;
+    margin: 0 10px;
+}
+
+.mobile-view {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow-y: auto;
+}
+
+.month-container {
+    margin: 0 10px;
+}
+
+.month-header {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+}
+
+.calendar-day, .calendar-date {
+    width: 14.28%;
+    text-align: center;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+.date-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.calendar-date {
+    cursor: pointer;
+    position: relative;
+}
+
+.calendar-date.selected {
+    background: #007bff;
+    color: white;
+}
+
+.calendar-date.in-range {
+    background: #e6f2ff;
+}
+
+.calendar-date.disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+.calendar-date.other-month {
+    color: #999;
+}
+
+.price {
+    font-size: 0.8em;
+    color: #28a745;
+}
+
+@media (max-width: 768px) {
+    #calendar-container {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        height: 100%;
+    }
+
+    .desktop-view {
+        display: none;
+    }
+
+    .mobile-view {
+        display: block;
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    .month-container {
+        margin: 20px 0;
+    }
+}

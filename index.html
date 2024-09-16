@@ -3,22 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar Plugin</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="calendar.css">
+    <title>Calendar Plugin Demo</title>
 </head>
 <body>
-    <div class="date-inputs">
-        <input type="text" id="startDate" placeholder="Start Date" readonly>
-        <input type="text" id="endDate" placeholder="End Date" readonly>
-    </div>
-    <div class="calendar-container" style="display: none;">
-        <div class="calendar-header">
-            <button id="prevMonth">&lt;</button>
-            <h2 id="currentMonth"></h2>
-            <button id="nextMonth">&gt;</button>
-        </div>
-        <div class="calendar-body" id="calendarBody"></div>
-    </div>
-    <script src="calendar.js"></script>
+    <h1>Calendar Plugin Demo</h1>
+    <label for="single-date">Single Date Picker:</label>
+    <input type="text" id="single-date" class="date-picker" data-type="single" placeholder="Select a date">
+
+    <label for="start-date">Start Date:</label>
+    <input type="text" id="start-date" class="date-picker" data-type="range" data-range="start" placeholder="Select start date">
+    <label for="end-date">End Date:</label>
+    <input type="text" id="end-date" class="date-picker" data-type="range" data-range="end" placeholder="Select end date">
+
+    <div id="single-calendar-placeholder"></div>
+    <div id="range-calendar-placeholder"></div>
+
+    <script type="module">
+        import Calendar from './calendar.js';
+
+        const singleDateCalendar = new Calendar({
+            singleDateSelector: '#single-date',
+            placeholder: '#single-calendar-placeholder',
+            view: 'desktop',
+            dateFormat: "ddd, DD/MMM/YYYY"
+        });
+
+        const rangeDateCalendar = new Calendar({
+            rangeDateSelectors: ['#start-date', '#end-date'],
+            placeholder: '#range-calendar-placeholder',
+            view: 'desktop',
+            dateFormat: "ddd, DD/MMM/YYYY"
+        });
+
+        // Example of disabling dates and setting prices
+        singleDateCalendar.disableDates(['2023-05-10', '2023-05-15']);
+        singleDateCalendar.setPrices({
+            '2023-05-12': 100,
+            '2023-05-13': 120
+        });
+
+        // Switch to mobile view for smaller screens
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                singleDateCalendar.setView('mobile');
+                rangeDateCalendar.setView('mobile');
+            } else {
+                singleDateCalendar.setView('desktop');
+                rangeDateCalendar.setView('desktop');
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial call
+    </script>
 </body>
 </html>

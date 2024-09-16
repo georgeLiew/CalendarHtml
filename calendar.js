@@ -1,271 +1,302 @@
 class Calendar {
-    constructor(dateFormat = "EEE, dd/MMM/yyyy") {
-        this.currentDate = new Date();
-        this.selectedDates = [];
+    constructor(options) {
+        this.options = options;
+        this.selectedDates = options.singleDateSelector ? null : [];
         this.disabledDates = [];
         this.prices = {};
-        this.dateFormat = dateFormat;
-        this.isMobile = window.innerWidth <= 768; // Add mobile detection
-        this.initContainer();
+        this.currentMonth = new Date();
+        this.view = options.view || 'desktop';
+        this.dateFormat = options.dateFormat || "ddd, DD/MMM/YYYY";
+        this.calendarId = `calendar-container-${Math.random().toString(36).substr(2, 9)}`;
+        this.init();
+    }
 
-        this.initElements();
-        this.renderCalendar();
+    init() {
+        this.createCalendar();
         this.addEventListeners();
-        this.hoverDate = null;
-        this.touchStartX = 0;
-        this.touchEndX = 0;
+        this.updateCalendar();
+        this.setView(this.view);
     }
 
-    initContainer() {
-        // Create container for calendar
-        this.calendarContainer = document.createElement('div');
-        this.calendarContainer.className = 'calendar-container';
-        this.calendarContainer.style.display = 'none';
+    createCalendar() {
+        const calendarContainer = document.createElement('div');
+        calendarContainer.id = this.calendarId;
+        calendarContainer.className = 'calendar-container';
+        calendarContainer.style.display = 'none';
 
-        if (this.isMobile) {
-            this.calendarContainer.style.position = 'fixed';
-            this.calendarContainer.style.top = '0';
-            this.calendarContainer.style.left = '0';
-            this.calendarContainer.style.width = '100vw';
-            this.calendarContainer.style.height = '100vh';
-            this.calendarContainer.style.zIndex = '1000';
+        // Create desktop view (2 months side by side)
+        const desktopView = document.createElement('div');
+        desktopView.className = 'desktop-view';
+        for (let i = 0; i < 2; i++) {
+            const monthContainer = this.createMonthContainer();
+            desktopView.appendChild(monthContainer);
+        }
+        const verticalLine = document.createElement('div');
+        verticalLine.className = 'vertical-line';
+        desktopView.insertBefore(verticalLine, desktopView.children[1]);
+
+        // Add navigation buttons for desktop
+        const prevButton = document.createElement('button');
+        prevButton.innerText = 'Previous';
+        prevButton.addEventListener('click', () => this.changeMonth(-1));
+        const nextButton = document.createElement('button');
+        nextButton.innerText = 'Next';
+        nextButton.addEventListener('click', () => this.changeMonth(1));
+        desktopView.appendChild(prevButton);
+        desktopView.appendChild(nextButton);
+
+        calendarContainer.appendChild(desktopView);
+
+        // Create mobile view (multiple months stacked)
+        const mobileView = document.createElement('div');
+        mobileView.className = 'mobile-view';
+        for (let i = 0; i < 3; i++) {
+            const monthContainer = this.createMonthContainer();
+            mobileView.appendChild(monthContainer);
+        }
+        calendarContainer.appendChild(mobileView);
+
+        // Append to placeholder or body
+        const placeholder = document.querySelector(this.options.placeholder);
+        if (placeholder) {
+            placeholder.appendChild(calendarContainer);
         } else {
-            this.calendarContainer.style.position = 'absolute';
+            document.body.appendChild(calendarContainer);
         }
-
-        document.body.appendChild(this.calendarContainer);
-
-        // Move existing calendar HTML into this container
-        // ... (code to create calendar HTML structure)
     }
 
-    initElements() {
-        this.calendarBody = document.getElementById('calendarBody');
-        this.currentMonthElement = document.getElementById('currentMonth');
-        this.prevMonthBtn = document.getElementById('prevMonth');
-        this.nextMonthBtn = document.getElementById('nextMonth');
-        this.startDateInput = document.getElementById('startDate');
-        this.endDateInput = document.getElementById('endDate');
-    }
+    createMonthContainer() {
+        const monthContainer = document.createElement('div');
+        monthContainer.className = 'month-container';
 
-    renderCalendar() {
-        const year = this.currentDate.getFullYear();
-        const month = this.currentDate.getMonth();
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        // Add month and year header
+        const monthHeader = document.createElement('div');
+        monthHeader.className = 'month-header';
+        monthContainer.appendChild(monthHeader);
 
-        this.currentMonthElement.textContent = `${this.currentDate.toLocaleString('default', { month: 'long' })} ${year}`;
-
-        let dateString = '';
-        for (let i = 0; i < firstDay; i++) {
-            dateString += '<div></div>';
-        }
-
-        for (let i = 1; i <= daysInMonth; i++) {
-            const date = new Date(year, month, i);
-            const dateClass = this.getDateClass(date);
-            const price = this.prices[date.toDateString()] || '';
-            dateString += `<div class="${dateClass}" data-date="${date.toDateString()}">${i}<span class="price">${price}</span></div>`;
-        }
-
-        this.calendarBody.innerHTML = dateString;
-
-        // Add mouseover and mouseout events to date cells
-        const dateCells = this.calendarBody.querySelectorAll('.date:not(.disabled)');
-        dateCells.forEach(cell => {
-            cell.addEventListener('mouseenter', (e) => this.handleDateHover(e));
-            cell.addEventListener('mouseleave', (e) => this.handleDateHoverEnd(e));
+        // Add day of week headers
+        const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const headerRow = document.createElement('div');
+        headerRow.className = 'calendar-header';
+        daysOfWeek.forEach(day => {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day';
+            dayElement.innerText = day;
+            headerRow.appendChild(dayElement);
         });
-    }
+        monthContainer.appendChild(headerRow);
 
-    getDateClass(date) {
-        let classes = 'date';
-        if (this.disabledDates.some(d => d.toDateString() === date.toDateString())) {
-            classes += ' disabled';
+        // Add date cells
+        const dateContainer = document.createElement('div');
+        dateContainer.className = 'date-container';
+        for (let i = 0; i < 42; i++) {
+            const dateCell = document.createElement('div');
+            dateCell.className = 'calendar-date';
+            dateContainer.appendChild(dateCell);
         }
-        if (this.selectedDates.some(d => d.toDateString() === date.toDateString())) {
-            classes += ' selected';
-        }
-        if (this.selectedDates.length === 2 && 
-            date > this.selectedDates[0] && 
-            date < this.selectedDates[1]) {
-            classes += ' in-range';
-        }
-        if (this.selectedDates.length === 1 && this.hoverDate) {
-            const [minDate, maxDate] = [this.selectedDates[0], this.hoverDate].sort((a, b) => a - b);
-            if (date > minDate && date <= maxDate) {
-                classes += ' hover-range';
-            }
-        }
-        return classes;
-    }
+        monthContainer.appendChild(dateContainer);
 
-    handleDateHover(e) {
-        if (this.selectedDates.length === 1) {
-            this.hoverDate = new Date(e.target.dataset.date);
-            this.renderCalendar();
-            console.log('handleDateHover', this.hoverDate);
-        }
-    }
-
-    handleDateHoverEnd(e) {
-        if (this.selectedDates.length === 1) {
-            this.hoverDate = null;
-            this.renderCalendar();
-            console.log('handleDateHoverEnd');
-        }
+        return monthContainer;
     }
 
     addEventListeners() {
-        this.prevMonthBtn.addEventListener('click', () => this.changeMonth(-1));
-        this.nextMonthBtn.addEventListener('click', () => this.changeMonth(1));
-        this.calendarBody.addEventListener('click', (e) => this.handleDateClick(e));
-
-        // Add touch events for swiping
-        this.calendarBody.addEventListener('touchstart', (e) => {
-            this.touchStartX = e.changedTouches[0].screenX;
-        });
-        this.calendarBody.addEventListener('touchend', (e) => {
-            this.touchEndX = e.changedTouches[0].screenX;
-            this.handleSwipe();
+        const inputSelector = this.options.singleDateSelector || this.options.rangeDateSelectors.join(', ');
+        document.querySelectorAll(inputSelector).forEach(input => {
+            input.addEventListener('focus', () => {
+                document.getElementById(this.calendarId).style.display = 'block';
+            });
         });
 
-        // Show calendar when clicking on input fields
-        this.startDateInput.addEventListener('click', () => this.showCalendar());
-        this.endDateInput.addEventListener('click', () => this.showCalendar());
-
-        // Hide calendar when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!this.calendarContainer.contains(e.target) && 
-                e.target !== this.startDateInput && 
-                e.target !== this.endDateInput) {
-                this.hideCalendar();
+        document.addEventListener('click', (event) => {
+            if (!event.target.closest(`#${this.calendarId}`) && !event.target.matches(inputSelector)) {
+                document.getElementById(this.calendarId).style.display = 'none';
             }
         });
-    }
 
-    handleSwipe() {
-        const swipeThreshold = 50;
-        if (this.touchEndX < this.touchStartX - swipeThreshold) {
-            this.changeMonth(1);
-        }
-        if (this.touchEndX > this.touchStartX + swipeThreshold) {
-            this.changeMonth(-1);
-        }
-    }
+        document.querySelectorAll(`#${this.calendarId} .calendar-date`).forEach(dateCell => {
+            dateCell.addEventListener('click', (event) => {
+                this.selectDate(event.target);
+            });
+            dateCell.addEventListener('mouseover', (event) => {
+                this.highlightRange(event.target);
+            });
+        });
 
-    changeMonth(delta) {
-        this.currentDate.setMonth(this.currentDate.getMonth() + delta);
-        this.renderCalendar();
-    }
-
-    handleDateClick(e) {
-        if (!e.target.classList.contains('date') || e.target.classList.contains('disabled')) return;
-
-        const clickedDate = new Date(e.target.dataset.date);
-
-        if (this.inputs.length === 1) {
-            // Single date selection
-            this.selectedDates = [clickedDate];
-            this.updateInputs();
-            this.renderCalendar();
-            this.hideCalendar();
-        } else if (this.inputs.length === 2) {
-            // Two date selection
-            if (this.selectedDates.length === 0 || this.selectedDates.length === 2) {
-                this.selectedDates = [clickedDate];
-            } else if (this.selectedDates.length === 1) {
-                if (clickedDate > this.selectedDates[0]) {
-                    this.selectedDates.push(clickedDate);
-                } else {
-                    this.selectedDates = [clickedDate, this.selectedDates[0]];
+        // Add swipe functionality for mobile view
+        if (this.view === 'mobile') {
+            const mobileView = document.querySelector(`#${this.calendarId} .mobile-view`);
+            let touchStartY;
+            mobileView.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+            });
+            mobileView.addEventListener('touchmove', (e) => {
+                const touchEndY = e.touches[0].clientY;
+                const diff = touchStartY - touchEndY;
+                if (Math.abs(diff) > 50) { // Threshold for swipe
+                    this.changeMonth(diff > 0 ? 1 : -1);
+                    touchStartY = touchEndY;
                 }
-                this.hideCalendar();
-            }
-            this.hoverDate = null;
-            this.updateInputs();
-            this.renderCalendar();
+            });
         }
     }
 
-    updateInputs() {
-        if (this.inputs.length === 1) {
-            this.inputs[0].value = this.selectedDates[0] ? this.formatDate(this.selectedDates[0]) : '';
-        } else if (this.inputs.length === 2) {
-            this.inputs[0].value = this.selectedDates[0] ? this.formatDate(this.selectedDates[0]) : '';
-            this.inputs[1].value = this.selectedDates[1] ? this.formatDate(this.selectedDates[1]) : '';
+    selectDate(dateElement) {
+        const selectedDate = new Date(dateElement.dataset.date);
+        
+        if (this.options.singleDateSelector) {
+            // Single date picker logic
+            const singleDateInput = document.querySelector(this.options.singleDateSelector);
+            singleDateInput.value = this.formatDate(selectedDate);
+            this.selectedDates = selectedDate;
+            document.getElementById(this.calendarId).style.display = 'none';
+        } else if (this.options.rangeDateSelectors) {
+            // Date range picker logic
+            const [startDateInput, endDateInput] = this.options.rangeDateSelectors.map(selector => document.querySelector(selector));
+            
+            if (this.selectedDates.length === 0 || this.selectedDates.length === 2) {
+                this.selectedDates = [selectedDate];
+                startDateInput.value = this.formatDate(selectedDate);
+                endDateInput.value = '';
+            } else {
+                if (selectedDate > this.selectedDates[0]) {
+                    this.selectedDates[1] = selectedDate;
+                    endDateInput.value = this.formatDate(selectedDate);
+                    document.getElementById(this.calendarId).style.display = 'none';
+                } else if (selectedDate < this.selectedDates[0]) {
+                    this.selectedDates = [selectedDate];
+                    startDateInput.value = this.formatDate(selectedDate);
+                    endDateInput.value = '';
+                } else {
+                    // If same as start date, do nothing
+                    return;
+                }
+            }
+        }
+
+        this.highlightSelectedDates();
+    }
+
+    highlightSelectedDates() {
+        document.querySelectorAll(`#${this.calendarId} .calendar-date`).forEach(dateCell => {
+            const cellDate = new Date(dateCell.dataset.date);
+            dateCell.classList.remove('selected', 'in-range');
+            
+            if (this.options.singleDateSelector) {
+                if (this.selectedDates && cellDate.getTime() === this.selectedDates.getTime()) {
+                    dateCell.classList.add('selected');
+                }
+            } else if (this.options.rangeDateSelectors) {
+                if (this.selectedDates.some(date => date && date.getTime() === cellDate.getTime())) {
+                    dateCell.classList.add('selected');
+                } else if (this.selectedDates.length === 2 && 
+                           cellDate > this.selectedDates[0] && 
+                           cellDate < this.selectedDates[1]) {
+                    dateCell.classList.add('in-range');
+                }
+            }
+        });
+    }
+
+    highlightRange(dateElement) {
+        if (this.selectedDates.length === 1) {
+            const hoverDate = new Date(dateElement.dataset.date);
+            document.querySelectorAll(`#${this.calendarId} .calendar-date`).forEach(dateCell => {
+                const cellDate = new Date(dateCell.dataset.date);
+                if (cellDate > this.selectedDates[0] && cellDate <= hoverDate) {
+                    dateCell.classList.add('in-range');
+                } else {
+                    dateCell.classList.remove('in-range');
+                }
+            });
         }
     }
 
     formatDate(date) {
-        const options = {
-            weekday: 'short',
-            year: 'numeric',
-            month: 'short',
-            day: '2-digit'
-        };
-        const formattedDate = date.toLocaleDateString('en-US', options);
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         return this.dateFormat
-            .replace('EEE', formattedDate.split(',')[0])
-            .replace('dd', formattedDate.split(' ')[2])
-            .replace('MMM', formattedDate.split(' ')[1])
-            .replace('yyyy', formattedDate.split(' ')[3]);
+            .replace('ddd', days[date.getDay()])
+            .replace('DD', date.getDate().toString().padStart(2, '0'))
+            .replace('MMM', months[date.getMonth()])
+            .replace('YYYY', date.getFullYear());
     }
 
-    setDisabledDates(dates) {
-        this.disabledDates = dates.map(date => new Date(date));
-        this.renderCalendar();
+    updateCalendar() {
+        const monthContainers = document.querySelectorAll(`#${this.calendarId} .month-container`);
+        monthContainers.forEach((container, index) => {
+            const monthDate = new Date(this.currentMonth);
+            monthDate.setMonth(monthDate.getMonth() + index);
+            this.updateMonthContainer(container, monthDate);
+        });
+    }
+
+    updateMonthContainer(container, date) {
+        const monthHeader = container.querySelector('.month-header');
+        monthHeader.innerText = `${date.toLocaleString('default', { month: 'long' })} ${date.getFullYear()}`;
+
+        const dateCells = container.querySelectorAll('.calendar-date');
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+
+        let currentDate = new Date(firstDay);
+        currentDate.setDate(currentDate.getDate() - (firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1));
+
+        dateCells.forEach((cell, index) => {
+            cell.innerText = currentDate.getDate();
+            cell.dataset.date = currentDate.toISOString();
+
+            if (currentDate.getMonth() !== date.getMonth()) {
+                cell.classList.add('other-month');
+            } else {
+                cell.classList.remove('other-month');
+            }
+
+            if (this.disabledDates.includes(currentDate.toISOString().split('T')[0])) {
+                cell.classList.add('disabled');
+            } else {
+                cell.classList.remove('disabled');
+            }
+
+            const price = this.prices[currentDate.toISOString().split('T')[0]];
+            if (price) {
+                const priceElement = document.createElement('div');
+                priceElement.className = 'price';
+                priceElement.innerText = `$${price}`;
+                cell.appendChild(priceElement);
+            }
+
+            currentDate.setDate(currentDate.getDate() + 1);
+        });
+    }
+
+    changeMonth(delta) {
+        this.currentMonth.setMonth(this.currentMonth.getMonth() + delta);
+        this.updateCalendar();
+    }
+
+    disableDates(dates) {
+        this.disabledDates = dates;
+        this.updateCalendar();
     }
 
     setPrices(prices) {
-        this.prices = Object.fromEntries(
-            Object.entries(prices).map(([key, value]) => [new Date(key).toDateString(), value])
-        );
-        this.renderCalendar();
+        this.prices = prices;
+        this.updateCalendar();
     }
 
-    showCalendar() {
-        this.calendarContainer.style.display = 'block';
-    }
-
-    hideCalendar() {
-        if (this.inputs.length === 1 || (this.inputs.length === 2 && this.selectedDates.length === 2)) {
-            this.calendarContainer.style.display = 'none';
+    setView(view) {
+        this.view = view;
+        const container = document.getElementById(this.calendarId);
+        if (view === 'desktop') {
+            container.classList.remove('mobile-view');
+            container.classList.add('desktop-view');
+        } else {
+            container.classList.remove('desktop-view');
+            container.classList.add('mobile-view');
         }
-    }
-
-    setDateFormat(format) {
-        this.dateFormat = format;
-        this.updateInputs();
-    }
-
-    // New method to initialize start and end date inputs
-    initDateInputs(...inputSelectors) {
-        this.inputs = inputSelectors.map(selector => document.querySelector(selector));
-
-        if (this.inputs.some(input => !input)) {
-            console.error('One or more date inputs not found');
-            return;
-        }
-
-        this.inputs.forEach(input => {
-            input.addEventListener('click', () => this.showCalendar());
-        });
-
-        // Position the calendar container relative to the first input
-        const firstInput = this.inputs[0];
-        const rect = firstInput.getBoundingClientRect();
-        this.calendarContainer.style.top = `${rect.bottom}px`;
-        this.calendarContainer.style.left = `${rect.left}px`;
+        this.updateCalendar();
     }
 }
-// Example usage:
-// calendar.setDisabledDates(['2023-05-06', '2023-05-07']);
-// calendar.setPrices({'2023-05-13': '$100', '2023-05-14': '$120'});
-// calendar.setDateFormat("yyyy-MM-dd");
 
-// Usage:
-const calendar = new Calendar();
-calendar.initDateInputs('#startDate', '#endDate'); // For two date selection
-// OR
-// calendar.initDateInputs('#singleDate'); // For single date selection
+// Export the Calendar class
+export default Calendar;

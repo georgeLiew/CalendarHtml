@@ -1,22 +1,42 @@
 I want to do a Calendar plugin for date picker. The date picker calendar should have following features:
 
+File
+calendar.js is the javascript for calendar plugin
+calendar.css is the css file for the calendar plugin
+index.html is the sample to demo the calendar plugin
+
+Global 
 -The plugin must be in javascript and css only.
--Able select single date or 2 date. If select single date it will update one input field. if it select 2 date it will update 2 input field. the second date must be greater than the first date.
--Able swipe to next month or previous month
--In mobile view, the calendar need to be full screen
+-first section show day of week in the calendar. Begin with monday.
+-middle section show date of the month
 -Able to disable certain date
 -Able to display price on date
--Calendar will hide first until user click on the first input or second input
--After first and second date input is filled, when user click on the calendar again, and the date is after the second date, it will change the second date value instead of reset both value
--in mobile view, the calendar need to fix exactly the screen size
--After user key in both date, the calendar will hide
-
--the calendar wont hide until first date and second date is selected.
+-Calendar will hide first until user click on the input field
 -highlight the selected date in the calendar
--able to change date format method, default format will be "wed, 12/May/2024"
 
--it will highlight date in between when select second date
--provide a init method for the startdate and enddate input
--auto create a container below the input field for desktop view and container with fit screen size for mobile view
+Function
+-provide a init method that iniial single date input only.
+-provide a init method that iniial 2 date input field.
+-provide date format method, default format will be "wed, 12/May/2024"
+-provide a html placeholder to render at bottom
+-provide method to set desktop view or mobile view
 
--it will highlight date in between when hover the second date
+Single Date Requirement
+-After user select a date, the calendar will hide
+
+Two Date Requirement 
+-it will update 2 input field. the second date must be greater than the first date.
+-After first and second date input is filled, when user click on the calendar again, and the date is after the second date, it will change the second date value instead of reset both value
+-After user select both date, the calendar will hide , else it remain show up
+-it will highlight date in between when hover the second date.For example when select 15 sept as first date, when i mouse hover on the 19 sept, the calendar should highlight 15 sept till 19 sept
+
+
+Desktop Requirement
+-in desktop show 2 month calendar in left and right position with a vertical line in between
+-auto create a container below the input field for desktop view 
+-have previous month button on the left of the first month and next month button on the right of the second month
+
+Mobile Requirement 
+-in mobile, show multiplpe month in up and down direction.
+-able swipe up and down for previous and next month.
+-container with full screen height and fit screen width for mobile view. in center is the current month.
