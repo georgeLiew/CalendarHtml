@@ -9,6 +9,7 @@ class Calendar {
         this.dateFormat = options.dateFormat || "ddd, DD/MMM/YYYY";
         this.calendarId = `calendar-container-${Math.random().toString(36).substr(2, 9)}`;
         this.mobileMonths = []; // Array to store month data for mobile view
+        this.enableScrollLoading = false;
         this.init();
     }
 
@@ -306,12 +307,21 @@ class Calendar {
         this.mobileMonths = [];
         const currentDate = new Date(this.currentMonth);
         
-        // Add previous, current, and next month
-        this.mobileMonths.push(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-        this.mobileMonths.push(new Date(currentDate));
-        this.mobileMonths.push(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+        // Add 2 previous months, current month, and 2 next months
+        for (let i = -2; i <= 2; i++) {
+            const monthDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, 1);
+            this.mobileMonths.push(monthDate);
+        }
+
+        // Disable scroll loading initially
+        this.enableScrollLoading = false;
 
         this.renderMobileMonths();
+
+        // Enable scroll loading after a short delay
+        setTimeout(() => {
+            this.enableScrollLoading = true;
+        }, 500); // Adjust this delay as needed
     }
 
     renderMobileMonths() {
@@ -332,15 +342,17 @@ class Calendar {
             });
         });
 
-        // Scroll to the middle (current month)
+        // Scroll to the current month
         setTimeout(() => {
-            const middleIndex = Math.floor(this.mobileMonths.length / 2);
-            const middleMonth = monthsContainer.children[middleIndex];
-            middleMonth.scrollIntoView({ behavior: 'auto', block: 'center' });
+            const currentMonthIndex = this.mobileMonths.findIndex(date => date.getMonth() === this.currentMonth.getMonth() && date.getFullYear() === this.currentMonth.getFullYear());
+            const currentMonth = monthsContainer.children[currentMonthIndex];
+            currentMonth.scrollIntoView({ behavior: 'auto', block: 'center' });
         }, 0);
     }
 
     handleMobileScroll(event) {
+        if (!this.enableScrollLoading) return;
+
         const container = event.target;
         const scrollPosition = container.scrollTop;
         const containerHeight = container.clientHeight;
