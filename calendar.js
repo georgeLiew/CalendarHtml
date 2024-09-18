@@ -152,15 +152,26 @@ class Calendar {
         if (this.options.singleDateSelector) {
             // Single date picker logic
             this.selectedDates = selectedDate;
+            this.updateInputField(this.options.singleDateSelector, selectedDate);
+            if (this.view === 'desktop') {
+                document.getElementById(this.calendarId).style.display = 'none';
+            }
         } else if (this.options.rangeDateSelectors) {
             // Date range picker logic
             if (this.selectedDates.length === 0 || this.selectedDates.length === 2) {
                 this.selectedDates = [selectedDate];
+                this.updateInputField(this.options.rangeDateSelectors[0], selectedDate);
             } else {
                 if (selectedDate > this.selectedDates[0]) {
                     this.selectedDates[1] = selectedDate;
+                    this.updateInputField(this.options.rangeDateSelectors[1], selectedDate);
+                    if (this.view === 'desktop') {
+                        document.getElementById(this.calendarId).style.display = 'none';
+                    }
                 } else if (selectedDate < this.selectedDates[0]) {
                     this.selectedDates = [selectedDate];
+                    this.updateInputField(this.options.rangeDateSelectors[0], selectedDate);
+                    this.updateInputField(this.options.rangeDateSelectors[1], '');
                 } else {
                     // If same as start date, do nothing
                     return;
@@ -170,6 +181,13 @@ class Calendar {
 
         this.highlightSelectedDates();
         this.updateSelectedDateDisplay();
+    }
+
+    updateInputField(selector, date) {
+        const input = document.querySelector(selector);
+        if (input) {
+            input.value = date ? this.formatDate(date) : '';
+        }
     }
 
     highlightSelectedDates() {
